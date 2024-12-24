@@ -10,7 +10,7 @@ const questionRoute = require("./routes/questionRoute");
 
 connectDB();
 const corsOption = {
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173","http://localhost:5174"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
   credentials: true,
@@ -25,6 +25,12 @@ app.use(express.json());
 app.use(cookieParser());
 
 const server = http.createServer(app);
+const io = new SocketIoServer(server, {
+  cors: corsOption,
+});
+
+// Global Socket.IO Instance
+app.set("socketio", io);
 
 app.get("/", (req, res) => {
   res.send("Hello World !");

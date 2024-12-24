@@ -1,4 +1,6 @@
 const Question = require("../model/questionTable");
+const User = require("../model/User");
+
 const cloudinary = require("cloudinary").v2;
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -162,40 +164,116 @@ const insertQuestion = async (req, res) => {
 };
 
 const updateQuestion = async (req, res) => {
+  const { sessionId, question_id, selected_option } = req.body;
+  
+  // Fetch the user from the database based on sessionId
+  const user = await User.findOne({ sessionId });
+  
+  if (!user) {
+    return res.status(404).json({ message: 'Session not found.' });
+  }
+
+  // Find the current question from the database
+  const question = await Question.findById(question_id);
+  if (!question) {
+    return res.status(404).json({ message: 'Question not found.' });
+  }
+
+  // Check if the selected option is correct
+  const isCorrect = selected_option === 'true' ? true : false;
+
+  // Ensure answeredQuestions is initialized (if not already)
+  if (!user.answeredQuestions) {
+    user.answeredQuestions = [];
+  }
+
+  // Update the user's answered questions and score
+  user.answeredQuestions.push({
+    questionId: question_id,
+    selectedOption: selected_option,
+    isCorrect,
+  });
+
+  if (isCorrect) {
+    user.score += 1; // Increase score if the answer is correct
+  }
+
+  user.currentQuestionIndex += 1; // Move to the next question
+console.log('user.totalQuestions',user.totalQuestions)
+  // Check if all questions are answered
+  if (user.currentQuestionIndex >= user.totalQuestions) {
+    // End the quiz and send the results
+    const endTime = Date.now();
+    const duration = (endTime - user.startTime) / 1000; // Duration in seconds
+
+    // Optionally save the result in the database (e.g., UserResults model)
+
+    // Clear the user's session data after the quiz ends
+    await User.deleteOne({ sessionId }); // Delete user session from the database
+    res.status(200).json({
+      success: true,
+      message: 'Quiz finished.',
+      score: user.score,
+      duration,
+    });
+   
+  }
+
+  await user.save(); // Delete user session from the database
+    // Send the response back with next question and current score
+  
+  res.status(200).json({
+    success: true,
+    message: 'Answer submitted.',
+    question_id,
+    sessionId,
+    score: user.score,
+  });
+
+
+};
+
+const getQuestions = async (req, res) => {
   try {
-    console.log(req.body);
+    const { question_id } = req.body;
 
-    // const id = req.params.id;
-    try {
-      const updatedQuestion = await Question.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true }
-      );
-
-      if (!updatedQuestion) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Question not found" });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: "Question updated successfully",
-        updatedQuestion,
-      });
-    } catch (err) {
-      res.status(500).json({
-        success: false,
-        message: "error in updating question ",
-        error: err.message,
-      });
+    // Find the current question
+    const currentQuestion = await Question.findById(question_id);
+    if (!currentQuestion) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Question Not Found" });
     }
+
+    // Find the next question based on a sorting field (e.g., _id)
+    let nextQuestion = await Question.findOne({ _id: { $gt: question_id } })
+      .sort({ _id: 1 }) // Sort by _id in ascending order
+      .exec();
+
+    if (!nextQuestion) {
+      // If no next question is found, fetch the first question
+      nextQuestion = await Question.findOne().sort({ _id: 1 }).exec();
+    }
+
+    if (!nextQuestion) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No Questions Found" });
+    }
+
+    // Update the question with currentQuestion = 1
+    const updatedQuestion = await Question.findByIdAndUpdate(
+      nextQuestion._id,
+      { currentQuestion: 1 },
+      { new: true }
+    );
+
+    res.status(200).json({ success: true, question: updatedQuestion });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res
       .status(500)
-      .json({ success: false, message: "Error Updating  Question Data" });
+      .json({ success: false, message: "Error Getting Next Question Data" });
   }
 };
 
@@ -225,31 +303,91 @@ const deleteQuestion = async (req, res) => {
   }
 };
 
-const StartQuestion = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const currentQuestion = 1;
+// const StartQuestion = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const currentQuestion = 1;
 
+//     const question = await Question.findByIdAndUpdate(
+//       id,
+//       { currentQuestion },
+//       { new: true }
+//     );
+
+//     if (!question) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Question not found." });
+//     }
+
+//     res
+//       .status(200)
+//       .json({ success: true, message: "Question status updated.", question });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: "Server error." });
+//   }
+// };
+
+
+let userSessions = {};
+
+// Function to generate a unique session ID (this could be a random string or token)
+const generateSessionId = () => {
+  return Math.random().toString(36).substring(2, 15); // Simple random string generator
+};
+const StartQuestion = async (req, res) => {
+ const { id } = req.params;
+  const io = req.app.get("socketio");
+
+  try {
+    // Reset previous currentQuestion
+    await Question.updateMany({ currentQuestion: 1 }, { currentQuestion: 0 });
+
+    // Set the new currentQuestion
     const question = await Question.findByIdAndUpdate(
       id,
-      { currentQuestion },
+      { currentQuestion: 1 },
       { new: true }
     );
 
-    if (!question) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Question not found." });
-    }
+    if (question) {
 
-    res
-      .status(200)
-      .json({ success: true, message: "Question status updated.", question });
+      const sessionId = generateSessionId();
+
+  // Fetch 5-10 random questions from the Question model
+  const randomQuestions = await Question.aggregate([{ $sample: { size: 10 } }]);
+
+  // Create a session for the user
+  const newUser = new User({
+    sessionId,
+    score: 0,
+    answeredQuestions: [],
+    currentQuestionIndex: 0,
+    totalQuestions: randomQuestions.length,
+    questions: randomQuestions,
+    startTime: Date.now(),
+  });
+
+
+  await newUser.save();
+      // Emit to all connected clients
+      io.emit("currentQuestionUpdated", question,sessionId);
+     res
+        .status(200)
+        .json({ success: true, message: "Question started", question ,sessionId,
+          question: randomQuestions[0],  // Sending the first question
+         });
+    } else {
+      res.status(404).json({ success: false, message: "Question not found" });
+    }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: "Server error." });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+
 
 const getAllQuestion = async (req, res) => {
   try {
@@ -296,4 +434,5 @@ module.exports = {
   getAllQuestion,
   getSingleQuestion,
   StartQuestion,
+  getQuestions,
 };

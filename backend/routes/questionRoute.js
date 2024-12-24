@@ -5,7 +5,8 @@ const {
   deleteQuestion,
   getAllQuestion,
   getSingleQuestion,
-  StartQuestion
+  StartQuestion,
+  getQuestions
 } = require("../controller/questionController");
 const router = express.Router();
 const multer = require("multer");
@@ -24,11 +25,13 @@ const upload = multer({
 });
 
 router.post("/insertQuestion",upload.single('video'), insertQuestion);
-router.put("/updateQuestion/:id", updateQuestion);
+router.post("/updateQuestion", updateQuestion);
 router.delete("/deleteQuestion/:id", deleteQuestion);
 router.get("/getallQuestion", getAllQuestion);
 router.get("/singleQuestion/:id", getSingleQuestion);
 router.post("/StartQuestion/:id", StartQuestion);
+router.post("/getQuestions", getQuestions);
+
 
 
 
