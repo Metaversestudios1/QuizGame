@@ -1,197 +1,183 @@
-import React, { useEffect, useState } from "react";
-import { IoIosArrowRoundBack } from "react-icons/io";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import $ from "jquery";
-import "jquery-validation";
-import { FaAngleDown } from "react-icons/fa6";
+import { useNavigate, useParams } from "react-router-dom";
 
-const EditQuestion = () => {
-  const [loader, setLoader] = useState(false);
-  const [error, setError] = useState("");
+const UpdateQuestion = () => {
+  const [questionData, setQuestionData] = useState({
+    question: "",
+    options: ["", "", "", ""],
+    correctAnswer: "",
+    video: null,
+    videoType: "",
+  });
+  const [optionErrors, setOptionErrors] = useState([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const params = useParams();
   const { id } = params;
-  const initialState = {
-    name: "",
-    description: "",
-    weight: "",
-    quantity: "",
-    dimensions: {
-      typeOfProduct: "",
-      length: "",
-      width: "",
-      height: "",
-      unit: "",
-    },
-  };
-  const [data, setData] = useState(initialState);
+  //console.log(id);
+
   useEffect(() => {
-    fetchOldData();
+    // Fetch the existing question data
+    const fetchQuestionData = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/singleQuestion/${id}`
+        );
+        const data = await response.json();
+        //console.log("question data", data.question);
+        if (data.success) {
+          setQuestionData({
+            question: data.question.question,
+            options: data.question.options.map((opt) => opt.text),
+            correctAnswer: ["A", "B", "C", "D"][
+              data.question.options.findIndex((opt) => opt.isCorrect)
+            ],
+            video: null, // Videos are not preloaded, only allow new uploads
+            videoType: data.question.videoType,
+          });
+        } else {
+          toast.error(data.message || "Failed to load question data.");
+        }
+      } catch (err) {
+        toast.error("Error loading question data.");
+      }
+    };
+
+    fetchQuestionData();
   }, []);
-  const fetchOldData = async () => {
-    const res = await fetch(
-      `${import.meta.env.VITE_BACKEND_URL}/api/getProduct/${id}`
-    );
-    const response = await res.json();
-    if (response.success) {
-      setData((prevState) => ({
-        ...prevState,
-        name: response?.product?.name,
-        description: response?.product?.description,
-        weight: response?.product?.weight,
-        quantity: response?.product?.quantity,
-        dimensions: {
-          typeOfProduct: response?.product?.dimensions.typeOfProduct,
-          length: response?.product?.dimensions.length,
-          width: response?.product?.dimensions.width,
-          height: response?.product?.dimensions.height,
-          unit: response?.product?.dimensions.unit,
-        },
-      }));
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setQuestionData((prev) => ({ ...prev, [name]: value }));
+    $(`#${name}`).removeClass("border-red-500").addClass("border-gray-300");
+  };
+
+  const handleOptionChange = (index, value) => {
+    const updatedOptions = [...questionData.options];
+    updatedOptions[index] = value;
+    setQuestionData((prev) => ({ ...prev, options: updatedOptions }));
+    const updatedErrors = [...optionErrors];
+    updatedErrors[index] = "";
+    setOptionErrors(updatedErrors);
+    $(`#option-${index}`)
+      .removeClass("border-red-500")
+      .addClass("border-gray-300");
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size < 10 * 1024 * 1024) {
+      setQuestionData((prev) => ({ ...prev, video: file }));
+      $("#video").removeClass("border-red-500").addClass("border-gray-300");
+    } else {
+      toast.error("Video file size must be less than 10MB.");
     }
   };
-  const validateProductForm = () => {
-    $("#productForm").validate({
-      rules: {
-        name: {
-          required: true,
-        },
-        description: {
-          required: true,
-        },
-        quantity: {
-          required: true,
-        },
-      },
-      messages: {
-        name: {
-          required: "Please enter name",
-        },
-        description: {
-          required: "Please enter description",
-        },
-        quantity: {
-          required: "Please select quantity",
-        },
-      },
-      errorElement: "div",
-      errorPlacement: function (error, element) {
-        error.addClass("invalid-feedback");
-        error.insertAfter(element);
-      },
-      highlight: function (element, errorClass, validClass) {
-        $(element).addClass("is-invalid").removeClass("is-valid");
-      },
-      unhighlight: function (element, errorClass, validClass) {
-        $(element).removeClass("is-invalid").addClass("is-valid");
-      },
+
+  const validateQuestionForm = () => {
+    let valid = true;
+    $(".error-message").text("");
+
+    if (!questionData.question.trim()) {
+      $(".question-error").text("Please enter a question.");
+      $("#question").removeClass("border-gray-300").addClass("border-red-500");
+      valid = false;
+    }
+
+    if (!questionData.correctAnswer) {
+      $(".correct-answer-error").text("Please select the correct answer.");
+      $("#correctAnswer")
+        .removeClass("border-gray-300")
+        .addClass("border-red-500");
+      valid = false;
+    }
+
+    const updatedErrors = questionData.options.map((option, index) => {
+      if (!option.trim()) {
+        $(`#option-${index}`)
+          .removeClass("border-gray-300")
+          .addClass("border-red-500");
+        valid = false;
+        return `Option ${index + 1} cannot be empty.`;
+      }
+      return "";
     });
 
-    // Return validation status
-    return $("#productForm").valid();
-  };
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+    setOptionErrors(updatedErrors);
 
-    setData((prevState) => {
-      // Handle nested fields in dimensions object
-      if (name.startsWith("dimensions.")) {
-        const field = name.split(".")[1]; // Get the sub-field name after "dimensions."
+    if (!questionData.videoType) {
+      $(".video-type-error").text("Please select a video type.");
+      $("#videoType").removeClass("border-gray-300").addClass("border-red-500");
+      valid = false;
+    }
 
-        // Only allow numeric values for length, width, and height
-        if (["length", "width", "height"].includes(field)) {
-          if (value === "" || /^[0-9]*$/.test(value)) {
-            return {
-              ...prevState,
-              dimensions: {
-                ...prevState.dimensions,
-                [field]: value,
-              },
-            };
-          } else {
-            return prevState; // Ignore non-numeric input for these fields
-          }
-        }
-
-        // Update non-numeric fields in dimensions (e.g., type, unit)
-        return {
-          ...prevState,
-          dimensions: {
-            ...prevState.dimensions,
-            [field]: value,
-          },
-        };
-      }
-
-      // Handle other fields outside of dimensions
-      if (["weight", "quantity"].includes(name)) {
-        // Only allow numeric input for weight and quantity
-        if (value === "" || /^[0-9]*$/.test(value)) {
-          return {
-            ...prevState,
-            [name]: value,
-          };
-        }
-        return prevState; // Ignore non-numeric input for these fields
-      }
-
-      // Default case for fields that accept any input
-      return {
-        ...prevState,
-        [name]: value,
-      };
-    });
+    return valid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateProductForm()) {
-      //setError("Please fill in all required fields.");
-      return;
+
+    if (!validateQuestionForm()) return;
+
+    setLoading(true);
+
+    const formattedOptions = questionData.options.map((optionText) => ({
+      text: optionText,
+      isCorrect: false,
+    }));
+
+    const correctAnswerIndex = ["A", "B", "C", "D"].indexOf(
+      questionData.correctAnswer
+    );
+    if (correctAnswerIndex !== -1) {
+      formattedOptions[correctAnswerIndex].isCorrect = true;
+    }
+
+    const formData = new FormData();
+    console.log(id);
+    formData.append("id", id); // Include the question ID
+    formData.append("question", questionData.question);
+    formData.append("option", JSON.stringify(formattedOptions));
+    formData.append("correctAnswer", questionData.correctAnswer);
+    formData.append("videoType", questionData.videoType);
+
+    if (questionData.video) {
+      formData.append("video", questionData.video);
     }
 
     try {
-      setLoader(true);
-
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/updateProduct/${id}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/updateQuestions/${id}`,
         {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          method: "POST",
+          body: formData,
         }
       );
-      const response = await res.json();
-      if (response.success) {
-        toast.success("Product is updated Successfully!", {
-          position: "top-right",
-          autoClose: 1000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-        });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Question updated successfully!");
+        // Add a delay before navigating
         setTimeout(() => {
-          navigate("/products");
-        }, 1500);
+          navigate("/question");
+        }, 2000); // 2 seconds delay
       } else {
-        setLoader(false);
-        setError(response.message);
+        toast.error(result.message || "Failed to update question.");
       }
     } catch (err) {
-      console.log(err);
+      console.error("Error submitting form:", err);
+      toast.error("An error occurred while updating the question.");
+    } finally {
+      setLoading(false);
     }
   };
-  const handleGoBack = () => {
-    navigate(-1);
-  };
+
   return (
     <>
-      <div className="flex items-center ">
+      <div className="flex items-center">
         <ToastContainer
           position="top-right"
           autoClose={2000}
@@ -204,171 +190,125 @@ const EditQuestion = () => {
           pauseOnHover
           theme="light"
         />
-        <div className="flex items-center">
-          <IoIosArrowRoundBack
-            onClick={handleGoBack}
-            className="bg-[#16144b] text-white rounded-sm text-[40px] cursor-pointer shadow-xl ml-5"
-          />
-        </div>
-        <div className="flex items-center">
-          <div className="text-2xl font-bold mx-2 my-8 px-4">Edit Product</div>
-        </div>
+        <div className="text-2xl font-bold mx-2 my-8 px-4">Update Question</div>
       </div>
-      {loader ? (
+      {loading ? (
         <div className="absolute w-[80%] h-[40%] flex justify-center items-center">
-          <div
-            className=" flex justify-center h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-e-transparent align-[-0.125em] text-surface motion-reduce:animate-[spin_1.5s_linear_infinite] dark:text-white"
-            role="status"
-          >
-            <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
-              Loading...
-            </span>
-          </div>
+          <div className="animate-spin h-8 w-8 border-4 border-current border-e-transparent text-surface rounded-full"></div>
         </div>
       ) : (
         <div className="w-[70%] m-auto my-10">
-          <form id="productForm">
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-6 mb-6 md:grid-cols-2 items-center">
               <div>
                 <label
-                  htmlFor="name"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-black"
+                  htmlFor="question"
+                  className="block mb-2 text-sm font-medium text-gray-900"
                 >
-                  Name of the Product
-                  <span className="text-red-900 text-lg ">&#x2a;</span>
+                  Question<span className="text-red-900 text-lg">*</span>
                 </label>
                 <input
-                  name="name"
-                  value={data.name}
-                  onChange={handleChange}
+                  name="question"
+                  id="question"
+                  value={questionData.question}
+                  onChange={handleInputChange}
                   type="text"
-                  id="name"
-                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                  placeholder="Product name"
-                  required
+                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                  placeholder="Enter question"
                 />
+                <p className="error-message question-error text-red-600 text-sm"></p>
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-900">
+                  Options<span className="text-red-900 text-lg">*</span>
+                </label>
+                {questionData.options.map((option, index) => (
+                  <div key={index} className="mb-2">
+                    <input
+                      type="text"
+                      id={`option-${index}`}
+                      value={option}
+                      onChange={(e) =>
+                        handleOptionChange(index, e.target.value)
+                      }
+                      className="flex-1 bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 w-full"
+                      placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                    />
+                    {optionErrors[index] && (
+                      <p className="text-red-600 text-sm mt-1">
+                        {optionErrors[index]}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
               <div>
                 <label
-                  htmlFor="description"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-black"
+                  htmlFor="correctAnswer"
+                  className="block mb-2 text-sm font-medium text-gray-900"
                 >
-                  Description
-                  <span className="text-red-900 text-lg ">&#x2a;</span>
+                  Correct Answer<span className="text-red-900 text-lg">*</span>
+                </label>
+                <select
+                  name="correctAnswer"
+                  id="correctAnswer"
+                  value={questionData.correctAnswer}
+                  onChange={handleInputChange}
+                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                >
+                  <option value="">Select Correct Answer</option>
+                  {questionData.options.map((_, index) => (
+                    <option key={index} value={String.fromCharCode(65 + index)}>
+                      {String.fromCharCode(65 + index)}
+                    </option>
+                  ))}
+                </select>
+                <p className="error-message correct-answer-error text-red-600 text-sm"></p>
+              </div>
+              <div>
+                <label
+                  htmlFor="video"
+                  className="block mb-2 text-sm font-medium text-gray-900"
+                >
+                  Upload Video
                 </label>
                 <input
-                  name="description"
-                  value={data.description}
-                  onChange={handleChange}
-                  type="text"
-                  id="description"
-                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                  placeholder="Description"
-                  required
+                  type="file"
+                  id="video"
+                  accept="video/*"
+                  onChange={handleFileChange}
+                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
                 />
+                <p className="error-message video-error text-red-600 text-sm"></p>
               </div>
-              <div className="">
+              <div>
                 <label
-                  htmlFor="quantity"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-black"
+                  htmlFor="videoType"
+                  className="block mb-2 text-sm font-medium text-gray-900"
                 >
-                  Quantity
-                  <span className="text-red-900 text-lg ">&#x2a;</span>
+                  Video Type<span className="text-red-900 text-lg">*</span>
                 </label>
-                <input
-                  name="quantity"
-                  value={data.quantity}
-                  onChange={handleChange}
-                  type="text"
-                  id="quantity"
-                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                  placeholder="Quantity in KG's"
-                  required
-                />
-              </div>
-              <div className="">
-                <label
-                  htmlFor="weight"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-black"
+                <select
+                  name="videoType"
+                  id="videoType"
+                  value={questionData.videoType}
+                  onChange={handleInputChange}
+                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
                 >
-                  Weight &#x28;KG&#x29;
-                </label>
-                <input
-                  name="weight"
-                  value={data.weight}
-                  onChange={handleChange}
-                  type="text"
-                  id="weight"
-                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                  placeholder="Wieght"
-                />
-              </div>
-
-              <div className="">
-                <label
-                  htmlFor="dimensions"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-black"
-                >
-                  Dimensions
-                </label>
-                <div className="flex gap-1">
-                  <input
-                    name="dimensions.typeOfProduct"
-                    value={data.dimensions.typeOfProduct}
-                    onChange={handleChange}
-                    type="text"
-                    id="typeOfProduct"
-                    className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                    placeholder="Type of product"
-                  />
-                  <input
-                    name="dimensions.unit"
-                    value={data.dimensions.unit}
-                    onChange={handleChange}
-                    type="text"
-                    id="dimensions"
-                    className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                    placeholder="Unit"
-                  />
-
-                  <input
-                    name="dimensions.length"
-                    value={data.dimensions.length}
-                    onChange={handleChange}
-                    type="number"
-                    id="dimensions"
-                    className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                    placeholder="Lenght "
-                  />
-                  <input
-                    name="dimensions.width"
-                    value={data.dimensions.width}
-                    onChange={handleChange}
-                    type="number"
-                    id="dimensions"
-                    className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                    placeholder="Width "
-                  />
-                  <input
-                    name="dimensions.height"
-                    value={data.dimensions.height}
-                    onChange={handleChange}
-                    type="number"
-                    id="dimensions"
-                    className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-black block w-full p-2.5 "
-                    placeholder="Height "
-                  />
-                </div>
+                  <option value="">Select video Type</option>
+                  <option value="Intro video">Intro video</option>
+                  <option value="Question related video">
+                    Question related video
+                  </option>
+                </select>
+                <p className="error-message video-type-error text-red-600 text-sm"></p>
               </div>
             </div>
-
-            {error && <p className="text-red-900  text-[17px] mb-5">{error}</p>}
             <button
               type="submit"
-              onClick={handleSubmit}
-              className="text-white bg-[#16144b] hover:bg-[#16144bea] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center"
+              className="text-white bg-[#16144b] hover:bg-[#16144bea] focus:ring-4 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center"
             >
-              UPDATE
+              Edit Question
             </button>
           </form>
         </div>
@@ -377,4 +317,4 @@ const EditQuestion = () => {
   );
 };
 
-export default EditQuestion;
+export default UpdateQuestion;

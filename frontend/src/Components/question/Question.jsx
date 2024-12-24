@@ -36,7 +36,9 @@ const Question = () => {
 
   const handleDelete = async (e, id) => {
     e.preventDefault();
-    const confirmDelete = window.confirm("Are you sure you want to delete this question?");
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this question?"
+    );
     if (confirmDelete) {
       const res = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/deleteQuestion/${id}`,
@@ -58,7 +60,9 @@ const Question = () => {
 
   const handleStart = async (e, id) => {
     e.preventDefault();
-    const confirmDelete = window.confirm("Are you sure you want to Start this question?");
+    const confirmDelete = window.confirm(
+      "Are you sure you want to Start this question?"
+    );
     if (confirmDelete) {
       const res = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/StartQuestion/${id}`,
@@ -119,7 +123,9 @@ const Question = () => {
                 <th className="px-6 py-3 border-2 border-gray-300">Sr No.</th>
                 <th className="px-6 py-3 border-2 border-gray-300">Question</th>
                 <th className="px-6 py-3 border-2 border-gray-300">Options</th>
-                <th className="px-6 py-3 border-2 border-gray-300">Correct Answer</th>
+                <th className="px-6 py-3 border-2 border-gray-300">
+                  Correct Answer
+                </th>
                 <th className="px-6 py-3 border-2 border-gray-300">Video</th>
                 <th className="px-6 py-3 border-2 border-gray-300">Actions</th>
               </tr>
@@ -127,8 +133,12 @@ const Question = () => {
             <tbody>
               {questions.map((item, index) => (
                 <tr key={item._id} className="bg-white">
-                  <td className="px-6 py-4 border-2 border-gray-300">{startIndex + index + 1}</td>
-                  <td className="px-6 py-4 border-2 border-gray-300">{item.question}</td>
+                  <td className="px-6 py-4 border-2 border-gray-300">
+                    {startIndex + index + 1}
+                  </td>
+                  <td className="px-6 py-4 border-2 border-gray-300">
+                    {item.question}
+                  </td>
                   <td className="px-6 py-4 border-2 border-gray-300">
                     {item.options.length > 0
                       ? item.options.map((opt, idx) => (
@@ -140,10 +150,16 @@ const Question = () => {
                         ))
                       : "No options"}
                   </td>
-                  <td className="px-6 py-4 border-2 border-gray-300">{item.correctAnswer}</td>
+                  <td className="px-6 py-4 border-2 border-gray-300">
+                    {item.correctAnswer}
+                  </td>
                   <td className="px-6 py-4 border-2 border-gray-300">
                     {item.videoUrl ? (
-                      <a href={item.videoUrl.url} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={item.videoUrl.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         View Video
                       </a>
                     ) : (
@@ -152,26 +168,26 @@ const Question = () => {
                   </td>
                   <td className="px-6 py-4 border-2 border-gray-300">
                     <div className="flex items-center">
-                      {/* <NavLink to={`/questions/edit/${item._id}`}>
+                      <NavLink to={`/questions/editquestion/${item._id}`}>
                         <CiEdit className="text-2xl cursor-pointer text-green-900 mx-2" />
                       </NavLink>
-                      <MdDelete
+                      {/* <MdDelete
                         onClick={(e) => handleDelete(e, item._id)}
                         className="text-2xl cursor-pointer text-red-900"
                       /> */}
-      
-      {item.currentQuestion === 1 ? (
-          <span className="text-green-600 font-semibold">Running</span>
-        ) : (
-          <button
-            onClick={(e) => handleStart(e,item._id)}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Start
-          </button>
-        )}
-      
-                      
+
+                      {item.currentQuestion === 1 ? (
+                        <span className="text-green-600 font-semibold">
+                          Running
+                        </span>
+                      ) : (
+                        <button
+                          onClick={(e) => handleStart(e, item._id)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        >
+                          Start
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -179,17 +195,20 @@ const Question = () => {
             </tbody>
           </table>
         ) : (
-          !loader && <div className="text-center text-xl">No questions available.</div>
+          !loader && (
+            <div className="text-center text-xl">No questions available.</div>
+          )
         )}
       </div>
 
       {questions.length > 0 && (
         <div className="flex flex-col items-center my-10">
           <span className="text-sm">
-            Showing{" "}
-            <span className="font-semibold">{startIndex + 1}</span> to{" "}
-            <span className="font-semibold">{Math.min(startIndex + pageSize, count)}</span> of{" "}
-            <span className="font-semibold">{count}</span> entries
+            Showing <span className="font-semibold">{startIndex + 1}</span> to{" "}
+            <span className="font-semibold">
+              {Math.min(startIndex + pageSize, count)}
+            </span>{" "}
+            of <span className="font-semibold">{count}</span> entries
           </span>
           <div className="inline-flex mt-2">
             <button

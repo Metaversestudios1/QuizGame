@@ -165,22 +165,22 @@ const insertQuestion = async (req, res) => {
 
 const updateQuestion = async (req, res) => {
   const { sessionId, question_id, selected_option } = req.body;
-  
+
   // Fetch the user from the database based on sessionId
   const user = await User.findOne({ sessionId });
-  
+
   if (!user) {
-    return res.status(404).json({ message: 'Session not found.' });
+    return res.status(404).json({ message: "Session not found." });
   }
 
   // Find the current question from the database
   const question = await Question.findById(question_id);
   if (!question) {
-    return res.status(404).json({ message: 'Question not found.' });
+    return res.status(404).json({ message: "Question not found." });
   }
 
   // Check if the selected option is correct
-  const isCorrect = selected_option === 'true' ? true : false;
+  const isCorrect = selected_option === "true" ? true : false;
 
   // Ensure answeredQuestions is initialized (if not already)
   if (!user.answeredQuestions) {
@@ -199,7 +199,7 @@ const updateQuestion = async (req, res) => {
   }
 
   user.currentQuestionIndex += 1; // Move to the next question
-console.log('user.totalQuestions',user.totalQuestions)
+  console.log("user.totalQuestions", user.totalQuestions);
   // Check if all questions are answered
   if (user.currentQuestionIndex >= user.totalQuestions) {
     // End the quiz and send the results
@@ -212,25 +212,22 @@ console.log('user.totalQuestions',user.totalQuestions)
     await User.deleteOne({ sessionId }); // Delete user session from the database
     res.status(200).json({
       success: true,
-      message: 'Quiz finished.',
+      message: "Quiz finished.",
       score: user.score,
       duration,
     });
-   
   }
 
   await user.save(); // Delete user session from the database
-    // Send the response back with next question and current score
-  
+  // Send the response back with next question and current score
+
   res.status(200).json({
     success: true,
-    message: 'Answer submitted.',
+    message: "Answer submitted.",
     question_id,
     sessionId,
     score: user.score,
   });
-
-
 };
 
 const getQuestions = async (req, res) => {
@@ -329,7 +326,6 @@ const deleteQuestion = async (req, res) => {
 //   }
 // };
 
-
 let userSessions = {};
 
 // Function to generate a unique session ID (this could be a random string or token)
@@ -337,7 +333,7 @@ const generateSessionId = () => {
   return Math.random().toString(36).substring(2, 15); // Simple random string generator
 };
 const StartQuestion = async (req, res) => {
- const { id } = req.params;
+  const { id } = req.params;
   const io = req.app.get("socketio");
 
   try {
@@ -352,32 +348,34 @@ const StartQuestion = async (req, res) => {
     );
 
     if (question) {
-
       const sessionId = generateSessionId();
 
-  // Fetch 5-10 random questions from the Question model
-  const randomQuestions = await Question.aggregate([{ $sample: { size: 10 } }]);
+      // Fetch 5-10 random questions from the Question model
+      const randomQuestions = await Question.aggregate([
+        { $sample: { size: 10 } },
+      ]);
 
-  // Create a session for the user
-  const newUser = new User({
-    sessionId,
-    score: 0,
-    answeredQuestions: [],
-    currentQuestionIndex: 0,
-    totalQuestions: randomQuestions.length,
-    questions: randomQuestions,
-    startTime: Date.now(),
-  });
+      // Create a session for the user
+      const newUser = new User({
+        sessionId,
+        score: 0,
+        answeredQuestions: [],
+        currentQuestionIndex: 0,
+        totalQuestions: randomQuestions.length,
+        questions: randomQuestions,
+        startTime: Date.now(),
+      });
 
-
-  await newUser.save();
+      await newUser.save();
       // Emit to all connected clients
-      io.emit("currentQuestionUpdated", question,sessionId);
-     res
-        .status(200)
-        .json({ success: true, message: "Question started", question ,sessionId,
-          question: randomQuestions[0],  // Sending the first question
-         });
+      io.emit("currentQuestionUpdated", question, sessionId);
+      res.status(200).json({
+        success: true,
+        message: "Question started",
+        question,
+        sessionId,
+        question: randomQuestions[0], // Sending the first question
+      });
     } else {
       res.status(404).json({ success: false, message: "Question not found" });
     }
@@ -386,8 +384,6 @@ const StartQuestion = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
-
 
 const getAllQuestion = async (req, res) => {
   try {
@@ -427,6 +423,165 @@ const getSingleQuestion = async (req, res) => {
   }
 };
 
+//new
+
+// const deleteImage = async (publicId) => {
+//   console.log("Attempting to delete video with publicId:", publicId);
+//   try {
+//     const result = await cloudinary.uploader.destroy(publicId);
+//     if (result.result === "not found") {
+//       console.warn(
+//         `Video with publicId "${publicId}" was not found on Cloudinary.`
+//       );
+//       return null; // Graceful handling for not found
+//     }
+//     return result; // Return result for successful deletion
+//   } catch (error) {
+//     console.error("Error deleting video from Cloudinary:", error);
+//     throw error; // Re-throw for further handling
+//   }
+// };
+
+const updateQuestions = async (req, res) => {
+  try {
+    const { id } = req.params; // Get question ID from request parameters
+
+    let { question, option, correctAnswer, videoUrl, videoType } = req.body;
+    console.log("Update Question Data:", req.body);
+
+    if (typeof option === "string") {
+      option = JSON.parse(option); // Convert string to array if needed
+      console.log(option);
+    }
+
+    // Validate required fields
+    if (!id || !question || !option || !correctAnswer) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please provide all required fields, including the question ID",
+      });
+    }
+
+    // Validate options
+    if (!Array.isArray(option) || option.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Options should be a non-empty array",
+      });
+    }
+
+    // Ensure each option has the correct structure
+    for (const opt of option) {
+      if (!opt.text || typeof opt.isCorrect !== "boolean") {
+        return res.status(400).json({
+          success: false,
+          message: "Each option must have 'text' and 'isCorrect' fields",
+        });
+      }
+    }
+
+    // Reset all options to isCorrect = false, then set the correct answer
+    for (let i = 0; i < option.length; i++) {
+      option[i].isCorrect = false;
+      if (
+        (correctAnswer === "A" && i === 0) ||
+        (correctAnswer === "B" && i === 1) ||
+        (correctAnswer === "C" && i === 2) ||
+        (correctAnswer === "D" && i === 3)
+      ) {
+        option[i].isCorrect = true;
+      }
+    }
+
+    // Find the existing question
+    const existingQuestion = await Question.findById(id);
+    if (!existingQuestion) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    // Handle video upload and deletion
+    let videoData = existingQuestion.videoUrl; // Default to existing video
+    if (req.file) {
+      const { originalname, buffer, mimetype } = req.file;
+      if (!mimetype || typeof mimetype !== "string") {
+        console.error("Invalid MIME type:", mimetype);
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid MIME type" });
+      }
+
+      // Upload new video
+      const uploadResult = await uploadImage(buffer, originalname, mimetype);
+      if (!uploadResult) {
+        return res
+          .status(500)
+          .json({ success: false, message: "File upload error" });
+      }
+      videoData = {
+        publicId: uploadResult.public_id,
+        url: uploadResult.secure_url,
+        originalname,
+        mimetype,
+      };
+
+      // Delete the old video
+      // if (existingQuestion.videoUrl && existingQuestion.videoUrl.publicId) {
+      //   try {
+      //     const response = await deleteImage(
+      //       existingQuestion.videoUrl.publicId
+      //     );
+      //     if (response === null) {
+      //       console.log(
+      //         `Old video with publicId "${existingQuestion.videoUrl.publicId}" was not deleted because it was not found.`
+      //       );
+      //     } else if (response.result === "ok") {
+      //       console.log(
+      //         `Old video deleted successfully: ${existingQuestion.videoUrl.publicId}`
+      //       );
+      //     }
+      //   } catch (err) {
+      //     console.error("Error deleting old video:", err);
+      //   }
+      // }
+    }
+
+    // Update the question in the database
+    const updatedQuestion = await Question.findByIdAndUpdate(
+      id,
+      {
+        question,
+        options: option,
+        correctAnswer,
+        videoUrl: videoData, // New or existing video
+        videoType,
+      },
+      { new: true } // Return the updated document
+    );
+
+    if (updatedQuestion) {
+      res.status(200).json({
+        success: true,
+        message: "Question updated successfully",
+        data: updatedQuestion,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Failed to update question",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error updating question data" });
+  }
+};
+
 module.exports = {
   insertQuestion,
   updateQuestion,
@@ -435,4 +590,5 @@ module.exports = {
   getSingleQuestion,
   StartQuestion,
   getQuestions,
+  updateQuestions,
 };

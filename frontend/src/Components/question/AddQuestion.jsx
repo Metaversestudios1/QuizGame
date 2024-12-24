@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import $ from "jquery";
+import { useNavigate, useParams } from "react-router-dom";
 
 const AddQuestion = () => {
   const [questionData, setQuestionData] = useState({
@@ -13,6 +14,7 @@ const AddQuestion = () => {
   });
   const [optionErrors, setOptionErrors] = useState([]); // Array for option-specific errors
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -148,6 +150,9 @@ const AddQuestion = () => {
       const result = await response.json();
       if (result.success) {
         toast.success("Question added successfully!");
+        setTimeout(() => {
+          navigate("/question");
+        }, 2000);
       } else {
         toast.error(result.message || "Failed to add question.");
       }
