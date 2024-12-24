@@ -165,7 +165,9 @@ const insertQuestion = async (req, res) => {
 
 const updateQuestion = async (req, res) => {
   const { sessionId, question_id, selected_option } = req.body;
-
+  
+  // Fetch the user from the database based on sessionId
+ 
   // Fetch the user from the database based on sessionId
   const user = await User.findOne({ sessionId });
 
@@ -178,7 +180,6 @@ const updateQuestion = async (req, res) => {
   if (!question) {
     return res.status(404).json({ message: "Question not found." });
   }
-
   // Check if the selected option is correct
   const isCorrect = selected_option === "true" ? true : false;
 
@@ -199,9 +200,12 @@ const updateQuestion = async (req, res) => {
   }
 
   user.currentQuestionIndex += 1; // Move to the next question
-  console.log("user.totalQuestions", user.totalQuestions);
+//  console.log("user.totalQuestions", user.totalQuestions);
   // Check if all questions are answered
   if (user.currentQuestionIndex >= user.totalQuestions) {
+
+    await Question.updateMany({}, { currentQuestionIndex: 0 });
+
     // End the quiz and send the results
     const endTime = Date.now();
     const duration = (endTime - user.startTime) / 1000; // Duration in seconds
@@ -209,16 +213,17 @@ const updateQuestion = async (req, res) => {
     // Optionally save the result in the database (e.g., UserResults model)
 
     // Clear the user's session data after the quiz ends
-    await User.deleteOne({ sessionId }); // Delete user session from the database
+    //await User.deleteOne({ sessionId }); // Delete user session from the database
     res.status(200).json({
       success: true,
       message: "Quiz finished.",
       score: user.score,
       duration,
     });
+    return;
   }
 
-  await user.save(); // Delete user session from the database
+     await user.save(); // Delete user session from the database
   // Send the response back with next question and current score
 
   res.status(200).json({
@@ -228,6 +233,7 @@ const updateQuestion = async (req, res) => {
     sessionId,
     score: user.score,
   });
+
 };
 
 const getQuestions = async (req, res) => {
@@ -261,7 +267,7 @@ const getQuestions = async (req, res) => {
     // Update the question with currentQuestion = 1
     const updatedQuestion = await Question.findByIdAndUpdate(
       nextQuestion._id,
-      { currentQuestion: 1 },
+      { currentQuestion: 0 },
       { new: true }
     );
 
@@ -591,4 +597,4 @@ module.exports = {
   StartQuestion,
   getQuestions,
   updateQuestions,
-};
+}

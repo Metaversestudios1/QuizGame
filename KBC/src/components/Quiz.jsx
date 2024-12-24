@@ -24,10 +24,10 @@ const Quiz = () => {
 
   const handleOptionClick = (id) => {
     console.log("Option clicked:", id); // Debugging log
-    alert(id)
     setSelectedOption(id);
-    if (submitted) return; // Disable clicks after submission
-  
+   // if (submitted) return; // Disable clicks after submission
+    setSubmitted(true); // Mark as submitted
+
   };
 
   const handleSubmit = async () => {
@@ -36,12 +36,9 @@ const Quiz = () => {
       return;
     }
 
-    setSubmitted(true); // Mark as submitted
-
-
-alert(sessionId)
-
+   
     try {
+      
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/updateQuestion`, {
         method: "POST",
         headers: {
@@ -58,16 +55,20 @@ alert(sessionId)
       const response = await res.json(); // Parse the response JSON
 
       if (response.success) {
+        if(response.message==='Quiz finished.'){
+        alert(response.message)
+        }
         setSelectedOption(response.sessionId);
-    alert(response.sessionId);
     setCurrentQuestion(null);
     setsession(null)
     setSelectedOption(null); // Reset selected option when a new question arrives
-    setSubmissionMessage("");
     setSubmitted(false); // Mark as submitted
-
-alert(response.question_id);
+    if(response.message==='Quiz finished.'){
+      setSubmissionMessage(`Quiz Finished Your Score is ${response.score} `);
+ 
+    }
     try {
+      
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/getQuestions`, {
         method: "POST",
         headers: {
@@ -86,7 +87,7 @@ alert(response.question_id);
         setCurrentQuestion(res1.question);
         setsession(response.sessionId)
         setSelectedOption(null); // Reset selected option when a new question arrives
-        setSubmissionMessage("");
+       
       }
        } catch (error) {
       setSubmissionMessage("Failed to get question. Please try again.");
@@ -102,7 +103,7 @@ alert(response.question_id);
     }
   };
 
-  if (!currentQuestion) return <h1>Waiting for the next question...</h1>;
+  if (!currentQuestion) return <div className="text-3xl underline text-center py-10"><h1>Waiting for the next question...</h1></div>;
 
   return (
     <div>
@@ -142,11 +143,14 @@ alert(response.question_id);
           >
             Submit
           </button>
+          <div className="text-3xl underline text-center py-10">
           {submissionMessage && (
             <p className="mt-3 text-center text-lg text-blue-900">
               {submissionMessage}
             </p>
           )}
+      </div>
+         
         </div>
       </div>
     </div>
