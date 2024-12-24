@@ -293,7 +293,7 @@ const AddQuestion = () => {
               type="submit"
               className="text-white bg-[#16144b] hover:bg-[#16144bea] focus:ring-4 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center"
             >
-              Add Questions
+              Add Question
             </button>
           </form>
         </div>
