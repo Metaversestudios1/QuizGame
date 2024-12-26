@@ -11,6 +11,7 @@ import EditQuestion from "./Components/question/EditQuestion";
 import EditCategory from "./Components/category/EditCategory";
 import AddCategory from "./Components/category/AddCategory";
 import Categories from "./Components/category/Categories";
+import User from "./Components/user/User";
 
 function App() {
   return (
@@ -21,14 +22,23 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/employees/addemployee" element={<AddEmployee />} />
-            <Route path="/employees/editemployee/:id" element={<EditEmployee />}/>
+            <Route
+              path="/employees/editemployee/:id"
+              element={<EditEmployee />}
+            />
             <Route path="/question" element={<Question />} />
             <Route path="/question/addquestion" element={<AddQuestion />} />
-            <Route path="/questions/editquestion/:id" element={<EditQuestion />} />
+            <Route
+              path="/questions/editquestion/:id"
+              element={<EditQuestion />}
+            />
             <Route path="/categories" element={<Categories />} />
             <Route path="/categories/addcategory" element={<AddCategory />} />
-            <Route path="/categories/editcategory/:id" element={<EditCategory />}/>
-            
+            <Route
+              path="/categories/editcategory/:id"
+              element={<EditCategory />}
+            />
+            <Route path="/user" element={<User />} />
           </Routes>
         </Layout>
       </Router>

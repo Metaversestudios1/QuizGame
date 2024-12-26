@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import socket from "../Socket"; // Import socket instance
+import socket from "../socket"; // Import socket instance
 
 const Intro = () => {
   const [videoUrl, setVideoUrl] = useState("");
@@ -7,7 +7,7 @@ const Intro = () => {
 
   useEffect(() => {
     // Listen for real-time updates
-    socket.on("currentQuestionUpdated", (question,sessionId) => {
+    socket.on("currentQuestionUpdated", (question, sessionId) => {
       if (question.videoUrl?.url) {
         setVideoUrl(question.videoUrl.url);
         setShowMessage(false);
@@ -27,12 +27,7 @@ const Intro = () => {
       {showMessage ? (
         <h1>Thank you for watching the video!</h1>
       ) : videoUrl ? (
-        <video
-          src={videoUrl}
-          controls
-          autoPlay
-          onEnded={handleVideoEnd}
-        />
+        <video src={videoUrl} controls autoPlay onEnded={handleVideoEnd} />
       ) : (
         <h1>Waiting for the video...</h1>
       )}
