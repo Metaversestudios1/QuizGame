@@ -11,26 +11,26 @@ const QuestionSchema = new mongoose.Schema({
         type: String,
         required: true,
       },
-      isCorrect:{
+      isCorrect: {
         type: String,
         required: true,
-      }
+      },
     },
   ],
   correctAnswer: { type: String, required: true },
   videoUrl: {
     publicId: { type: String },
-      url: { type: String },
-      originalname: { type: String },
-      mimetype: { type: String },
+    url: { type: String },
+    originalname: { type: String },
+    mimetype: { type: String },
   },
-  videoType:{
-    type: String,//Intro video,question related video
-    required:true,
+  videoType: {
+    type: String, //Intro video,question related video
+    required: false,
   },
-  currentQuestion:{
-    type:Number,
-    default:0
+  currentQuestion: {
+    type: Number,
+    default: 0,
   },
   createdAt: {
     type: Date,
@@ -38,6 +38,10 @@ const QuestionSchema = new mongoose.Schema({
   },
   deleted_at: {
     type: Date,
+    default: null,
+  },
+  timer: {
+    type: String,
     default: null,
   },
 });

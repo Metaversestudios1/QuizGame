@@ -55,7 +55,8 @@ const uploadImage = (buffer, originalname, mimetype) => {
 };
 const insertQuestion = async (req, res) => {
   try {
-    let { question, option, correctAnswer, videoUrl, videoType } = req.body;
+    let { question, option, correctAnswer, videoUrl, videoType, timer } =
+      req.body;
     // Check the type of 'options'
     console.log("Insert Question Data:", req.body);
 
@@ -139,6 +140,7 @@ const insertQuestion = async (req, res) => {
       correctAnswer: correctAnswer, // Store as a number
       videoUrl: videoData,
       videoType: videoType,
+      timer: timer,
       // videoUrl can be optional
     });
 
@@ -165,9 +167,9 @@ const insertQuestion = async (req, res) => {
 
 const updateQuestion = async (req, res) => {
   const { sessionId, question_id, selected_option } = req.body;
-  
+
   // Fetch the user from the database based on sessionId
- 
+
   // Fetch the user from the database based on sessionId
   const user = await User.findOne({ sessionId });
 
@@ -200,10 +202,9 @@ const updateQuestion = async (req, res) => {
   }
 
   user.currentQuestionIndex += 1; // Move to the next question
-//  console.log("user.totalQuestions", user.totalQuestions);
+  //  console.log("user.totalQuestions", user.totalQuestions);
   // Check if all questions are answered
   if (user.currentQuestionIndex >= user.totalQuestions) {
-
     await Question.updateMany({}, { currentQuestionIndex: 0 });
 
     // End the quiz and send the results
@@ -223,7 +224,7 @@ const updateQuestion = async (req, res) => {
     return;
   }
 
-     await user.save(); // Delete user session from the database
+  await user.save(); // Delete user session from the database
   // Send the response back with next question and current score
 
   res.status(200).json({
@@ -233,7 +234,6 @@ const updateQuestion = async (req, res) => {
     sessionId,
     score: user.score,
   });
-
 };
 
 const getQuestions = async (req, res) => {
@@ -597,4 +597,4 @@ module.exports = {
   StartQuestion,
   getQuestions,
   updateQuestions,
-}
+};

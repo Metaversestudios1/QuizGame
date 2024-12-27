@@ -10,8 +10,9 @@ const questionRoute = require("./routes/questionRoute");
 const userRoute = require("./routes/userRoute");
 
 connectDB();
+//changed http://localhost:5175 to http://localhost:5174
 const corsOption = {
-  origin: ["http://localhost:5173", "http://localhost:5175"],
+  origin: ["http://localhost:5173", "http://localhost:5174"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
   credentials: true,
