@@ -11,6 +11,7 @@ const UpdateQuestion = () => {
     correctAnswer: "",
     video: null,
     videoType: "",
+    timer: "",
   });
   const [optionErrors, setOptionErrors] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,7 @@ const UpdateQuestion = () => {
             ],
             video: null, // Videos are not preloaded, only allow new uploads
             videoType: data.question.videoType,
+            timer: data.question.timer || "",
           });
         } else {
           toast.error(data.message || "Failed to load question data.");
@@ -108,11 +110,11 @@ const UpdateQuestion = () => {
 
     setOptionErrors(updatedErrors);
 
-    if (!questionData.videoType) {
-      $(".video-type-error").text("Please select a video type.");
-      $("#videoType").removeClass("border-gray-300").addClass("border-red-500");
-      valid = false;
-    }
+    // if (!questionData.videoType) {
+    //   $(".video-type-error").text("Please select a video type.");
+    //   $("#videoType").removeClass("border-gray-300").addClass("border-red-500");
+    //   valid = false;
+    // }
 
     return valid;
   };
@@ -143,6 +145,7 @@ const UpdateQuestion = () => {
     formData.append("option", JSON.stringify(formattedOptions));
     formData.append("correctAnswer", questionData.correctAnswer);
     formData.append("videoType", questionData.videoType);
+    formData.append("timer", questionData.timer);
 
     if (questionData.video) {
       formData.append("video", questionData.video);
@@ -302,6 +305,27 @@ const UpdateQuestion = () => {
                   </option>
                 </select>
                 <p className="error-message video-type-error text-red-600 text-sm"></p>
+              </div>
+              <div>
+                <label
+                  htmlFor="timer"
+                  className="block mb-2 text-sm font-medium"
+                >
+                  Timer
+                </label>
+                <select
+                  name="timer"
+                  id="timer"
+                  value={questionData.timer}
+                  onChange={handleInputChange}
+                  className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                >
+                  <option value="">Select Timer</option>
+                  <option value="30">30 Seconds</option>
+                  <option value="60">60 Seconds</option>
+                  <option value="90">90 Seconds</option>
+                  <option value="unlimited">Unlimited</option>
+                </select>
               </div>
             </div>
             <button

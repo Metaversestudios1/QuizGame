@@ -26,6 +26,7 @@ const Question = () => {
       }/api/getAllQuestion?page=${page}&limit=${pageSize}&search=${search}`
     );
     const response = await res.json();
+    console.log("question data", response);
     if (response.success) {
       setNoData(response.result.length === 0);
       setQuestions(response.result);
@@ -127,6 +128,7 @@ const Question = () => {
                   Correct Answer
                 </th>
                 <th className="px-6 py-3 border-2 border-gray-300">Video</th>
+                <th className="px-6 py-3 border-2 border-gray-300">Timer</th>
                 <th className="px-6 py-3 border-2 border-gray-300">Actions</th>
               </tr>
             </thead>
@@ -165,6 +167,9 @@ const Question = () => {
                     ) : (
                       "No video"
                     )}
+                  </td>
+                  <td className="px-6 py-4 border-2 border-gray-300">
+                    {item.timer ? item.timer : "No Timer Set"}
                   </td>
                   <td className="px-6 py-4 border-2 border-gray-300">
                     <div className="flex items-center">

@@ -140,7 +140,7 @@ const insertQuestion = async (req, res) => {
       correctAnswer: correctAnswer, // Store as a number
       videoUrl: videoData,
       videoType: videoType,
-      timer: timer,
+      ...(timer && { timer }),
       // videoUrl can be optional
     });
 
@@ -452,7 +452,8 @@ const updateQuestions = async (req, res) => {
   try {
     const { id } = req.params; // Get question ID from request parameters
 
-    let { question, option, correctAnswer, videoUrl, videoType } = req.body;
+    let { question, option, correctAnswer, videoUrl, videoType, timer } =
+      req.body;
     console.log("Update Question Data:", req.body);
 
     if (typeof option === "string") {
@@ -556,15 +557,23 @@ const updateQuestions = async (req, res) => {
     }
 
     // Update the question in the database
+
+    const updateData = {
+      question,
+      options: option,
+      correctAnswer,
+      videoUrl: videoData, // New or existing video
+      videoType,
+    };
+
+    // Update the timer only if it is provided
+    if (timer !== undefined) {
+      updateData.timer = timer;
+    }
+
     const updatedQuestion = await Question.findByIdAndUpdate(
       id,
-      {
-        question,
-        options: option,
-        correctAnswer,
-        videoUrl: videoData, // New or existing video
-        videoType,
-      },
+      updateData,
       { new: true } // Return the updated document
     );
 
